@@ -91,6 +91,11 @@
 
         <!-- form -->
         <form class="form reveal" novalidate>
+          <!-- Web3Forms hidden fields -->
+          <input type="hidden" name="subject" value="New message from the Workchop website" />
+          <input type="hidden" name="from_name" value="Workchop website" />
+          <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true" />
+
           <div class="field">
             <label for="name">Your name</label>
             <input id="name" name="name" type="text" placeholder="Jane Appfan" required />
@@ -117,7 +122,8 @@
           </div>
 
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Send message <span class="arrow">↗</span></button>
-          <p class="form-note">Works out of the box via your email app. To collect submissions automatically, add a Formspree endpoint in <code>script.js</code>.</p>
+          <p class="form-status" role="status" aria-live="polite"></p>
+          <p class="form-note">We read every message and reply within one business day. No newsletters, no spam.</p>
         </form>
       </div>
     </div>

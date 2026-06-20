@@ -3,14 +3,14 @@
   "use strict";
 
   /* -----------------------------------------------------------
-     CONFIG: set this to make the contact form send for real.
-     1. Create a free form at https://formspree.io
-     2. Paste your endpoint below, e.g.
-        "https://formspree.io/f/abcdwxyz"
+     CONFIG: make the contact form send for real.
+     1. Go to https://web3forms.com, enter hello@workchop.io,
+        and confirm via the verification email.
+     2. Paste the access key they give you below.
      Until then, the form falls back to opening the visitor's
      email client (mailto), so it still works.
   ----------------------------------------------------------- */
-  var FORM_ENDPOINT = ""; // <-- paste Formspree URL here
+  var WEB3FORMS_KEY = "YOUR_ACCESS_KEY"; // <-- paste Web3Forms access key here
   var CONTACT_EMAIL = "hello@workchop.io";
 
   /* Mobile nav toggle */
@@ -76,28 +76,30 @@
     chip.addEventListener("click", function () { chip.classList.toggle("selected"); });
   });
 
-  /* Contact form */
+  /* Contact form (Web3Forms) */
   var form = document.querySelector(".form");
   if (form) {
+    var btn = form.querySelector("button[type=submit]");
+    var btnLabel = btn ? btn.innerHTML : "";
+    var status = form.querySelector(".form-status");
+
+    var setStatus = function (msg, kind) {
+      if (!status) return;
+      status.textContent = msg;
+      status.className = "form-status" + (kind ? " " + kind : "");
+    };
+
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var btn = form.querySelector("button[type=submit]");
+
+      // honeypot: bots tick this hidden box
+      var hp = form.querySelector("[name=botcheck]");
+      if (hp && hp.checked) return;
+
       var data = new FormData(form);
 
-      var done = function (msg) {
-        if (btn) { btn.innerHTML = msg; btn.disabled = true; btn.style.opacity = "0.85"; }
-      };
-
-      if (FORM_ENDPOINT) {
-        if (btn) { btn.textContent = "Sending…"; btn.disabled = true; }
-        fetch(FORM_ENDPOINT, { method: "POST", body: data, headers: { Accept: "application/json" } })
-          .then(function (r) {
-            if (r.ok) { form.reset(); done("Sent. We'll be in touch ✦"); }
-            else { done("Hmm, that failed. Email us instead ✦"); btn.disabled = false; }
-          })
-          .catch(function () { done("Network error. Email us instead ✦"); if (btn) btn.disabled = false; });
-      } else {
-        // mailto fallback so the form works with no backend
+      // No key yet → fall back to the visitor's email app so the form still works
+      if (!WEB3FORMS_KEY || WEB3FORMS_KEY === "YOUR_ACCESS_KEY") {
         var subject = encodeURIComponent("Workchop enquiry from " + (data.get("name") || "the website"));
         var body = encodeURIComponent(
           "Name: " + (data.get("name") || "") + "\n" +
@@ -106,8 +108,36 @@
           (data.get("msg") || "")
         );
         window.location.href = "mailto:" + CONTACT_EMAIL + "?subject=" + subject + "&body=" + body;
-        done("Opening your email app ✦");
+        setStatus("Opening your email app…");
+        return;
       }
+
+      var payload = { access_key: WEB3FORMS_KEY };
+      data.forEach(function (v, k) { payload[k] = v; });
+
+      if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+      setStatus("");
+
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res && res.success) {
+            form.reset();
+            if (btn) btn.innerHTML = "Sent ✦";
+            setStatus("Thanks! Your message is on its way. We'll reply within a business day. ✦", "ok");
+          } else {
+            if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
+            setStatus("Something went wrong. Please email " + CONTACT_EMAIL + " directly.", "err");
+          }
+        })
+        .catch(function () {
+          if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
+          setStatus("Network error. Please email " + CONTACT_EMAIL + " directly.", "err");
+        });
     });
   }
 

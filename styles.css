@@ -320,6 +320,9 @@ h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; line-height: 1
 .chip:hover { border-color: var(--accent); color: var(--text); }
 .chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .form-note { font-size: 0.85rem; color: var(--muted-2); margin-top: 14px; }
+.form-status { font-size: 0.92rem; margin-top: 14px; min-height: 1.2em; }
+.form-status.ok { color: var(--accent); }
+.form-status.err { color: #ff7a7a; }
 
 /* ============================================
    CTA band
