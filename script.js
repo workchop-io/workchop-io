@@ -10,7 +10,7 @@
      Until then, the form falls back to opening the visitor's
      email client (mailto), so it still works.
   ----------------------------------------------------------- */
-  var WEB3FORMS_KEY = "YOUR_ACCESS_KEY"; // <-- paste Web3Forms access key here
+  var WEB3FORMS_KEY = "84f1ca50-5f77-4a9b-b987-9f5acad16dc9"; // Web3Forms access key (routes to hello@workchop.io)
   var CONTACT_EMAIL = "hello@workchop.io";
 
   /* Mobile nav toggle */
