@@ -12,6 +12,7 @@
   ----------------------------------------------------------- */
   var WEB3FORMS_KEY = "84f1ca50-5f77-4a9b-b987-9f5acad16dc9"; // Web3Forms access key (routes to hello@workchop.io)
   var CONTACT_EMAIL = "hello@workchop.io";
+  var LOOPS_FORM_ENDPOINT = "https://app.loops.so/api/newsletter-form/cmqm9t27l04mt0j137xvobd6c"; // newsletter signups
 
   /* Mobile nav toggle */
   var toggle = document.querySelector(".nav-toggle");
@@ -141,16 +142,52 @@
     });
   }
 
-  /* Newsletter */
-  var sub = document.querySelector(".subscribe");
-  if (sub) {
+  /* Newsletter (Loops) */
+  document.querySelectorAll(".subscribe").forEach(function (sub) {
+    var btn = sub.querySelector(".btn");
+    var input = sub.querySelector("input[type=email]");
+    var btnLabel = btn ? btn.innerHTML : "Subscribe";
+    var status = sub.parentElement ? sub.parentElement.querySelector(".subscribe-status") : null;
+    var setStatus = function (m, k) {
+      if (status) { status.textContent = m; status.className = "subscribe-status" + (k ? " " + k : ""); }
+    };
+
     sub.addEventListener("submit", function (e) {
       e.preventDefault();
-      var btn = sub.querySelector(".btn");
-      if (btn) { btn.textContent = "Subscribed ✦"; btn.disabled = true; }
-      sub.querySelector("input") && (sub.querySelector("input").value = "");
+      var email = input ? input.value.trim() : "";
+      if (!email) return;
+
+      if (!LOOPS_FORM_ENDPOINT) {
+        if (input) input.value = "";
+        if (btn) { btn.textContent = "Subscribed ✦"; btn.disabled = true; }
+        return;
+      }
+
+      if (btn) { btn.disabled = true; btn.textContent = "Subscribing…"; }
+      setStatus("");
+
+      fetch(LOOPS_FORM_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "email=" + encodeURIComponent(email)
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (res) {
+          if (res && res.success) {
+            if (input) input.value = "";
+            if (btn) btn.textContent = "Subscribed ✦";
+            setStatus("You're on the list. Thanks! ✦", "ok");
+          } else {
+            if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
+            setStatus((res && res.message) ? res.message : "That didn't work. Try again?", "err");
+          }
+        })
+        .catch(function () {
+          if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
+          setStatus("Network error. Try again in a moment.", "err");
+        });
     });
-  }
+  });
 
   /* Footer year */
   var yr = document.querySelector("[data-year]");
