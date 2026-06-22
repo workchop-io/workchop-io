@@ -201,7 +201,13 @@
     slEl.setAttribute("href", app.href);
     if (app.external) { slEl.setAttribute("target", "_blank"); slEl.setAttribute("rel", "noopener"); }
     else { slEl.removeAttribute("target"); slEl.removeAttribute("rel"); }
-    slEl.style.setProperty("--sl-grad", app.grad);
+    // Live screenshot of the app's site as the background, with the app's gradient as fallback
+    if (app.external) {
+      var shot = "https://image.thum.io/get/width/1200/crop/700/noanimate/" + app.href;
+      slEl.style.backgroundImage = 'url("' + shot + '"), ' + app.grad;
+    } else {
+      slEl.style.backgroundImage = app.grad;
+    }
     var slSet = function (sel, txt) { var n = slEl.querySelector(sel); if (n) n.textContent = txt; };
     slSet("[data-sl=tag]", app.tag);
     var stEl = slEl.querySelector("[data-sl=status]");
