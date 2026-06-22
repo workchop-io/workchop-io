@@ -201,10 +201,15 @@ h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; line-height: 1
    Marquee
    ============================================ */
 .marquee { border-block: 1px solid var(--border); background: var(--bg-2); overflow: hidden; padding-block: 22px; }
-.marquee-track { display: flex; gap: 56px; width: max-content; animation: scroll 28s linear infinite; }
+.marquee-track { display: flex; gap: 56px; width: max-content; animation: scroll 48s linear infinite; }
 .marquee-track span { font-family: var(--font-head); font-size: 1.1rem; color: var(--muted-2); display: inline-flex; align-items: center; gap: 56px; white-space: nowrap; }
 .marquee-track span::after { content: "✦"; color: var(--accent); }
 @keyframes scroll { to { transform: translateX(-50%); } }
+/* Slow it right down on phones so each phrase is readable */
+@media (max-width: 720px) {
+  .marquee-track { gap: 36px; animation-duration: 95s; }
+  .marquee-track span { font-size: 1rem; gap: 36px; }
+}
 
 /* ============================================
    Cards / services
