@@ -14,6 +14,37 @@
   var CONTACT_EMAIL = "hello@workchop.io";
   var LOOPS_FORM_ENDPOINT = "https://app.loops.so/api/newsletter-form/cmqm9t27l04mt0j137xvobd6c"; // newsletter signups
 
+  /* -----------------------------------------------------------
+     Apps data helpers (data lives in apps.js → window.WORKCHOP_APPS)
+  ----------------------------------------------------------- */
+  var APPS = (window.WORKCHOP_APPS || []).filter(function (a) { return !a.hidden; });
+  var STATUS_LABEL = { live: "Live", beta: "In build", soon: "In build" };
+  var PLATFORM_LABEL = { ios: "iOS", android: "Android", web: "Web" };
+  function ctaFor(a) { return a.external ? "Visit site" : "Coming soon"; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  /* Render the Apps page grid from the data file */
+  var grid = document.querySelector("[data-apps-grid]");
+  if (grid && APPS.length) {
+    // live apps first (CSS also enforces this via order)
+    var ordered = APPS.slice().sort(function (a, b) {
+      return (a.status === "live" ? 0 : 1) - (b.status === "live" ? 0 : 1);
+    });
+    grid.innerHTML = ordered.map(function (a) {
+      var attrs = a.external ? ' target="_blank" rel="noopener"' : "";
+      var name = esc(a.name) + (a.workingName ? ' <span style="font-weight:400;color:var(--muted-2);font-size:0.7em">(working name)</span>' : "");
+      var meta = a.platforms.map(function (p) { return "<span>" + (PLATFORM_LABEL[p] || p) + "</span>"; }).join("");
+      var link = a.external ? (ctaFor(a) + ' <span class="arrow">↗</span>') : ctaFor(a);
+      return '<a href="' + a.url + '"' + attrs + ' class="project reveal" data-platform="' + a.platforms.join(" ") + '" style="--card-grad:' + a.grad + '">' +
+        '<div class="top"><span class="tag">' + esc(a.category) + '</span><span class="status ' + a.status + '">' + (STATUS_LABEL[a.status] || "In build") + '</span></div>' +
+        '<h3>' + name + '</h3>' +
+        '<p>' + esc(a.description) + '</p>' +
+        '<div class="meta">' + meta + '</div>' +
+        '<span class="applink">' + link + '</span>' +
+        '</a>';
+    }).join("");
+  }
+
   /* Mobile nav toggle */
   var toggle = document.querySelector(".nav-toggle");
   var links = document.querySelector(".nav-links");
@@ -189,34 +220,28 @@
     });
   });
 
-  /* Featured spotlight: pick a random app on load */
+  /* Featured spotlight: pick a random app on load (from the shared data) */
   var slEl = document.getElementById("spotlight");
-  if (slEl) {
-    var SPOTLIGHT_APPS = [
-      { name: "Reshuffy", tag: "Music", status: "Live", statusClass: "live", href: "https://reshuffy.com", external: true, cta: "Visit site", grad: "linear-gradient(135deg,#1a2e2a,#0c1210)", initial: "R", blurb: "Clean up your Spotify playlists without the fear. Fix broken tracks, kill duplicates, and reorganise by mood and genre, always with a preview first." },
-      { name: "Dailygrasp", tag: "Learning", status: "In build", statusClass: "beta", href: "https://dailygrasp.app/", external: true, cta: "Visit site", grad: "linear-gradient(135deg,#1d2b1a,#0d0f0c)", initial: "D", blurb: "A 60-second AI summary of a Wikipedia article, every day. Dial it from everyday facts to deep, nerdy rabbit holes." },
-      { name: "Raydr", tag: "Events", status: "Live", statusClass: "live", href: "https://raydr.live/", external: true, cta: "Visit site", grad: "linear-gradient(135deg,#261a2e,#0e0c12)", initial: "R", blurb: "Like Skyscanner, but for nights out. Every local event in one tidy calendar." }
-    ];
-    var app = SPOTLIGHT_APPS[Math.floor(Math.random() * SPOTLIGHT_APPS.length)];
-    slEl.setAttribute("href", app.href);
+  if (slEl && APPS.length) {
+    var app = APPS[Math.floor(Math.random() * APPS.length)];
+    slEl.setAttribute("href", app.url);
     if (app.external) { slEl.setAttribute("target", "_blank"); slEl.setAttribute("rel", "noopener"); }
     else { slEl.removeAttribute("target"); slEl.removeAttribute("rel"); }
     // Live screenshot of the app's site as the background, with the app's gradient as fallback
     if (app.external) {
-      var shot = "https://image.thum.io/get/width/1200/crop/700/noanimate/" + app.href;
+      var shot = "https://image.thum.io/get/width/1200/crop/700/noanimate/" + app.url;
       slEl.style.backgroundImage = 'url("' + shot + '"), ' + app.grad;
     } else {
       slEl.style.backgroundImage = app.grad;
     }
     var slSet = function (sel, txt) { var n = slEl.querySelector(sel); if (n) n.textContent = txt; };
-    slSet("[data-sl=tag]", app.tag);
+    slSet("[data-sl=tag]", app.category);
     var stEl = slEl.querySelector("[data-sl=status]");
-    if (stEl) { stEl.textContent = app.status; stEl.className = "status " + app.statusClass; }
+    if (stEl) { stEl.textContent = STATUS_LABEL[app.status] || "In build"; stEl.className = "status " + app.status; }
     slSet("[data-sl=name]", app.name);
-    slSet("[data-sl=blurb]", app.blurb);
-    slSet("[data-sl=initial]", app.initial);
+    slSet("[data-sl=blurb]", app.tagline);
     var ctaEl = slEl.querySelector("[data-sl=cta]");
-    if (ctaEl) ctaEl.innerHTML = app.cta + ' <span class="arrow">↗</span>';
+    if (ctaEl) ctaEl.innerHTML = ctaFor(app) + ' <span class="arrow">↗</span>';
   }
 
   /* Footer year */
