@@ -13,6 +13,7 @@
   var WEB3FORMS_KEY = "84f1ca50-5f77-4a9b-b987-9f5acad16dc9"; // Web3Forms access key (routes to hello@workchop.io)
   var CONTACT_EMAIL = "hello@workchop.io";
   var LOOPS_FORM_ENDPOINT = "https://app.loops.so/api/newsletter-form/cmqm9t27l04mt0j137xvobd6c"; // newsletter signups
+  var LOOPS_SOURCE = "website"; // tags each signup with where it came from (needs a "source" property in Loops)
 
   /* -----------------------------------------------------------
      Apps data helpers (data lives in apps.js → window.WORKCHOP_APPS)
@@ -200,7 +201,7 @@
       fetch(LOOPS_FORM_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "email=" + encodeURIComponent(email)
+        body: "email=" + encodeURIComponent(email) + "&source=" + encodeURIComponent(LOOPS_SOURCE)
       })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (res) {
