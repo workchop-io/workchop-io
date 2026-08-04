@@ -31,6 +31,15 @@
   }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
+  /* -----------------------------------------------------------
+     Analytics (GA4). Safe to call anywhere: if gtag hasn't loaded
+     (ad blocker, offline) this quietly does nothing.
+  ----------------------------------------------------------- */
+  function track(name, params) {
+    if (typeof window.gtag !== "function") return;
+    try { window.gtag("event", name, params || {}); } catch (e) {}
+  }
+
   /* Render the Apps page grid from the data file */
   var grid = document.querySelector("[data-apps-grid]");
   if (grid && APPS.length) {
@@ -43,7 +52,8 @@
       var name = esc(a.name) + (a.workingName ? ' <span style="font-weight:400;color:var(--muted-2);font-size:0.7em">(working name)</span>' : "");
       var meta = a.platforms.map(function (p) { return "<span>" + (PLATFORM_LABEL[p] || p) + "</span>"; }).join("");
       var link = a.external ? (ctaFor(a) + ' <span class="arrow">↗</span>') : ctaFor(a);
-      return '<a href="' + (a.external ? withUtm(a.url, "apps_grid") : a.url) + '"' + attrs + ' class="project reveal" data-platform="' + a.platforms.join(" ") + '" style="--card-grad:' + a.grad + '">' +
+      var trackAttrs = a.external ? ' data-app-link="' + esc(a.name) + '" data-placement="apps_grid"' : "";
+      return '<a href="' + (a.external ? withUtm(a.url, "apps_grid") : a.url) + '"' + attrs + trackAttrs + ' class="project reveal" data-platform="' + a.platforms.join(" ") + '" style="--card-grad:' + a.grad + '">' +
         '<div class="top"><span class="tag">' + esc(a.category) + '</span><span class="status ' + a.status + '">' + (STATUS_LABEL[a.status] || "In build") + '</span></div>' +
         '<h3>' + name + '</h3>' +
         '<p>' + esc(a.description) + '</p>' +
@@ -52,6 +62,19 @@
         '</a>';
     }).join("");
   }
+
+  /* Outbound app clicks → one event with the app name and where it was clicked.
+     Delegated so it covers the grid (rendered above), the spotlight and the
+     hero links, and keeps working if any of them re-render. */
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest ? e.target.closest("[data-app-link]") : null;
+    if (!link) return;
+    track("app_click", {
+      app_name: link.getAttribute("data-app-link"),
+      placement: link.getAttribute("data-placement") || "unknown",
+      link_url: link.href
+    });
+  });
 
   /* Mobile nav toggle */
   var toggle = document.querySelector(".nav-toggle");
@@ -103,6 +126,7 @@
         filters.forEach(function (c) { c.classList.remove("selected"); });
         chip.classList.add("selected");
         var f = chip.getAttribute("data-filter");
+        track("filter_apps", { platform: f });
         apps.forEach(function (app) {
           var match = f === "all" || app.getAttribute("data-platform").indexOf(f) !== -1;
           app.hidden = !match;
@@ -166,15 +190,18 @@
         .then(function (r) { return r.json(); })
         .then(function (res) {
           if (res && res.success) {
+            track("generate_lead", { form: "contact", topic: data.get("topic") || "unspecified" });
             form.reset();
             if (btn) btn.innerHTML = "Sent ✦";
             setStatus("Thanks! Your message is on its way. We'll reply within a business day. ✦", "ok");
           } else {
+            track("form_error", { form: "contact", reason: "rejected" });
             if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
             setStatus("Something went wrong. Please email " + CONTACT_EMAIL + " directly.", "err");
           }
         })
         .catch(function () {
+          track("form_error", { form: "contact", reason: "network" });
           if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
           setStatus("Network error. Please email " + CONTACT_EMAIL + " directly.", "err");
         });
@@ -213,15 +240,18 @@
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (res) {
           if (res && res.success) {
+            track("sign_up", { method: "newsletter", page: location.pathname });
             if (input) input.value = "";
             if (btn) btn.textContent = "Subscribed ✦";
             setStatus("You're on the list. Thanks! ✦", "ok");
           } else {
+            track("form_error", { form: "newsletter", reason: "rejected" });
             if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
             setStatus((res && res.message) ? res.message : "That didn't work. Try again?", "err");
           }
         })
         .catch(function () {
+          track("form_error", { form: "newsletter", reason: "network" });
           if (btn) { btn.disabled = false; btn.innerHTML = btnLabel; }
           setStatus("Network error. Try again in a moment.", "err");
         });
@@ -233,6 +263,15 @@
   if (slEl && APPS.length) {
     var app = APPS[Math.floor(Math.random() * APPS.length)];
     slEl.setAttribute("href", app.external ? withUtm(app.url, "spotlight") : app.url);
+    // Which app was shown — without this the spotlight click-through rate has no denominator
+    track("spotlight_impression", { app_name: app.name });
+    if (app.external) {
+      slEl.setAttribute("data-app-link", app.name);
+      slEl.setAttribute("data-placement", "spotlight");
+    } else {
+      slEl.removeAttribute("data-app-link");
+      slEl.removeAttribute("data-placement");
+    }
     if (app.external) { slEl.setAttribute("target", "_blank"); slEl.setAttribute("rel", "noopener"); }
     else { slEl.removeAttribute("target"); slEl.removeAttribute("rel"); }
     // Live screenshot of the app's site as the background, with the app's gradient as fallback
