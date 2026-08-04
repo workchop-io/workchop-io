@@ -22,6 +22,13 @@
   var STATUS_LABEL = { live: "Live", beta: "In build", soon: "In build" };
   var PLATFORM_LABEL = { ios: "iOS", android: "Android", web: "Web" };
   function ctaFor(a) { return a.external ? "Visit site" : "Coming soon"; }
+  /* Tag outbound app links so analytics on the destination site shows
+     they came from workchop.io, and from which placement (campaign). */
+  function withUtm(url, campaign) {
+    if (!url || url === "#") return url;
+    var sep = url.indexOf("?") !== -1 ? "&" : "?";
+    return url + sep + "utm_source=workchop&utm_medium=referral&utm_campaign=" + campaign;
+  }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
   /* Render the Apps page grid from the data file */
@@ -36,7 +43,7 @@
       var name = esc(a.name) + (a.workingName ? ' <span style="font-weight:400;color:var(--muted-2);font-size:0.7em">(working name)</span>' : "");
       var meta = a.platforms.map(function (p) { return "<span>" + (PLATFORM_LABEL[p] || p) + "</span>"; }).join("");
       var link = a.external ? (ctaFor(a) + ' <span class="arrow">↗</span>') : ctaFor(a);
-      return '<a href="' + a.url + '"' + attrs + ' class="project reveal" data-platform="' + a.platforms.join(" ") + '" style="--card-grad:' + a.grad + '">' +
+      return '<a href="' + (a.external ? withUtm(a.url, "apps_grid") : a.url) + '"' + attrs + ' class="project reveal" data-platform="' + a.platforms.join(" ") + '" style="--card-grad:' + a.grad + '">' +
         '<div class="top"><span class="tag">' + esc(a.category) + '</span><span class="status ' + a.status + '">' + (STATUS_LABEL[a.status] || "In build") + '</span></div>' +
         '<h3>' + name + '</h3>' +
         '<p>' + esc(a.description) + '</p>' +
@@ -225,7 +232,7 @@
   var slEl = document.getElementById("spotlight");
   if (slEl && APPS.length) {
     var app = APPS[Math.floor(Math.random() * APPS.length)];
-    slEl.setAttribute("href", app.url);
+    slEl.setAttribute("href", app.external ? withUtm(app.url, "spotlight") : app.url);
     if (app.external) { slEl.setAttribute("target", "_blank"); slEl.setAttribute("rel", "noopener"); }
     else { slEl.removeAttribute("target"); slEl.removeAttribute("rel"); }
     // Live screenshot of the app's site as the background, with the app's gradient as fallback
